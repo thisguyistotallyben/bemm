@@ -68,26 +68,83 @@ class DBManager:
     # Operation
 
     def get_all_operations(self, equipment):
-        self.cursor.execute("SELECT * FROM operation WHERE equipmentid=?", (equipment.pk,))
+        self.cursor.execute('''
+            SELECT
+                pk,
+                name,
+                date,
+                previousid,
+                equipmentid
+            FROM
+                operation
+            WHERE
+                equipmentid=?''',
+            (equipment.pk,))
         db_op = self.cursor.fetchall()
 
-        operation_list = []
+        '''
+        So this bit is kind of sketchy and a little bit stupid.
+
+        On the first go around, the prev_operation field is just the id
+        On the second go around, it changes to the actual entity
+        '''
+        op_map = {}
         for op in db_op:
-            operation_list.append(Operation(op[0], op[1], op[2], op[3]))
+            if op[3] is None:
+                key = -1
+            else:
+                key = op[3]
+            op_map[key] = Operation(op[0], op[1], op[2], op[3], equipment)
 
-        return operation_list
+        for op in op_map:
+            prev_op_pk = op_map[op].prev_operation
+            if prev_op_pk is None:
+                continue
+            op_map[op].prev_operation = op_map[prev_op_pk]
 
-    def insert_operation(self, equipment, operation_name, date):
-        eq_id = self.get_equipmentid(equipment_name)
-        print(eq_id)
-        if eq_id is None:
-            print('oof that does not exist')
-            return
+        return op_map.values()
 
-        self.cursor.execute(
-            "INSERT INTO operation(name, previousid, equipmentid) VALUES(?,?,?);",
-            (operation_name, None, eq_id,))
+
+    def insert_operation(self, equipment, previous_operation, operation_name, date):
+        if previous_operation is None:
+            prev_op_pk = None
+        else:
+            prev_op_pk = previous_operation.pk
+
+        self.cursor.execute('''
+            INSERT INTO
+                operation(
+                    name,
+                    date,
+                    previousid,
+                    equipmentid)
+            VALUES(?,?,?,?);''',
+            (operation_name, date, prev_op_pk, equipment.pk,))
         self.conn.commit()
+
+        pk = self.get_operation_pk(operation_name, date, equipment.pk)
+        print(pk)
+        if pk == None:
+            return None
+        return Operation(pk, operation_name, date, previous_operation, equipment)
+
+    def get_operation_pk(self, name, date, equip_pk):
+        self.cursor.execute( '''
+            SELECT
+                pk
+            FROM
+                operation
+            WHERE
+                name=?
+            AND
+                date=?
+            AND
+                equipmentid=?''',
+            (name, date, equip_pk,))
+        op = self.cursor.fetchone()
+        if op == None:
+            return None
+        return op[0]
 
     def get_equipmentid(self, equipment_name):
         self.cursor.execute("SELECT id FROM equipment WHERE name=?", (equipment_name,))
@@ -96,3 +153,8 @@ class DBManager:
 
     def close(self):
         self.conn.close()
+
+    # BE CAREFUL MY DUDE
+    def drop_all(self):
+        self.cursor.execute("DROP TABLE IF EXISTS equipment")
+        self.cursor.execute("DROP TABLE IF EXISTS operation")

@@ -9,7 +9,8 @@ CREATE TABLE operation(
     name TEXT,
     date INTEGER,
     previousid INTEGER,
-    equipmentid INTEGER,
+    equipmentid INTEGER NOT NULL,
+    UNIQUE(previousid),
     FOREIGN KEY(previousid) REFERENCES equipment(pk),
     FOREIGN KEY(equipmentid) REFERENCES operation(pk)
 );
