@@ -102,7 +102,7 @@ class DBManager:
                 continue
             op_map[op].prev_operation = op_map[prev_op_pk]
 
-        return op_map.values()
+        return list(op_map.values())
 
 
     def insert_operation(self, equipment, previous_operation, operation_name, date):
