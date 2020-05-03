@@ -147,7 +147,7 @@ class DBManager:
                 maintenanceid=?
             ORDER BY
                 startdate DESC''',
-            (m_item.pk))
+            (m_item.pk,))
         db_md = self.cursor.fetchall()
 
         md_list = []

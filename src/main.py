@@ -10,14 +10,8 @@ import sqlite3
 import tkinter as tk
 from tkinter import simpledialog, messagebox
 from tkinter import ttk
+from tkcalendar import Calendar, DateEntry
 from db_manager import DBManager
-
-
-class Popup(tk.Frame):
-    def __init__(self, master=None):
-        super().__init__(master)
-        self.master = master
-        self.widgets = {}
 
 
 class Bemm(tk.Frame):
@@ -83,7 +77,9 @@ class Bemm(tk.Frame):
         histtree.column('#0', width=40)
         self.widgets['histtree'] = histtree
 
-        self.widgets['thing'] = ttk.Button(infoframe, text="Something")
+        self.widgets['setdate'] = ttk.Button(infoframe, text='Set Date')
+        self.widgets['calendar'] = DateEntry(infoframe, width=12, background='gray',
+                                             foreground='white', borderwidth=2)
 
         '''
         DISPLAY
@@ -94,7 +90,7 @@ class Bemm(tk.Frame):
         tk.Grid.columnconfigure(self, 1, weight=3)
         tk.Grid.columnconfigure(self, 2, weight=2)
 
-        tk.Grid.rowconfigure(infoframe, 0, weight=1)
+        tk.Grid.rowconfigure(infoframe, 1, weight=1)
         tk.Grid.columnconfigure(infoframe, 0, weight=1)
 
         # row 0
@@ -112,8 +108,9 @@ class Bemm(tk.Frame):
 
         # info area
         infoframe.grid(column=2, row=1, rowspan=2, ipadx=10, ipady=10, sticky='nsew')
-        # self.widgets['thing'].grid(column=2, row=1, rowspan=2, sticky='n')
-        histtree.grid(column=0, row=0, padx=10, pady=(0, 10), sticky='sew')
+        histtree.grid(column=0, row=1, padx=10, pady=(0, 10), sticky='nsew')
+        self.widgets['calendar'].grid(column=0, row=0, padx=(10, 0), pady=10, sticky='w')
+
 
     def add_equipment(self):
         answer = simpledialog.askstring("New", "Enter Equipment Name", parent=self)
@@ -152,10 +149,21 @@ class Bemm(tk.Frame):
 
     def update_mi_tree(self, tree, equipment):
         self.clear_tree(tree)
-        op_list = self.db.get_all_maintenance_items(equipment)
+        self.mi_map = {}
 
-        for i in op_list:
+        mi_list = self.db.get_all_maintenance_items(equipment)
+
+        for i in mi_list:
+            self.mi_map[i.name] = i
             tree.insert('', 0, '', text=i.name, values=(i.numdays))
+
+    def update_hist_tree(self, tree, m_item):
+        # print('here then')
+        # get all dates
+        # iterate
+        dates = self.db.get_all_maintenance_dates(m_item)
+        # print(dates)
+
 
     '''
     Event Callbacks
@@ -170,12 +178,19 @@ class Bemm(tk.Frame):
         self.update_mi_tree(self.widgets['mitree'], self.current_equipment)
 
     def item_click(self, event):
+        # print('here')
         selected_item = self.widgets['mitree'].identify('item', event.x, event.y)
         if selected_item == '':
             return
 
         item_text = self.widgets['mitree'].item(selected_item, 'text')
         self.labels['info'].set(f"Info for: {item_text}")
+        m_item = self.mi_map[item_text]
+        self.update_hist_tree(self.widgets['histtree'], m_item)
+
+    # def new_date(self):
+    #     cal =
+    #     cal.grid(column=1, row=0)
 
     def clear_tree(self, tree):
         for i in tree.get_children():
