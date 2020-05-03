@@ -8,12 +8,11 @@ class Equipment:
         self.name = name
 
 
-class Operation:
-    def __init__(self, pk=-1, name='', date=-1, prev_operation=None, equipment=None):
+class MaintenanceItem:
+    def __init__(self, pk=-1, name='', numdays=-1, equipment=None):
         self.pk = pk
         self.name = name
-        self.date = date
-        self.prev_operation = prev_operation
+        self.numdays = numdays
         self.equipment = equipment
 
 
@@ -38,7 +37,14 @@ class DBManager:
     # Equipment
 
     def get_all_equipment(self):
-        self.cursor.execute("SELECT pk, name FROM equipment")
+        self.cursor.execute('''
+            SELECT
+                pk,
+                name
+            FROM
+                equipment
+            ORDER BY
+                name DESC''')
         db_eq = self.cursor.fetchall()
 
         equipment_list = []
@@ -65,83 +71,61 @@ class DBManager:
 
         return self.get_equipment(name)
 
-    # Operation
+    # Maintenace Items
 
-    def get_all_operations(self, equipment):
+    def get_all_maintenance_items(self, equipment):
         self.cursor.execute('''
             SELECT
                 pk,
                 name,
-                date,
-                previousid,
+                numdays,
                 equipmentid
             FROM
-                operation
+                maintenanceitem
             WHERE
                 equipmentid=?''',
             (equipment.pk,))
-        db_op = self.cursor.fetchall()
+        db_mi = self.cursor.fetchall()
 
-        '''
-        So this bit is kind of sketchy and a little bit stupid.
+        mi_list = []
+        for mi in db_mi:
+            mi_list.append(MaintenanceItem(mi[0], mi[1], mi[2], equipment))
 
-        On the first go around, the prev_operation field is just the id
-        On the second go around, it changes to the actual entity
-        '''
-        op_map = {}
-        for op in db_op:
-            if op[3] is None:
-                key = -1
-            else:
-                key = op[3]
-            op_map[key] = Operation(op[0], op[1], op[2], op[3], equipment)
+        print(mi_list)
+        return mi_list
 
-        for op in op_map:
-            prev_op_pk = op_map[op].prev_operation
-            if prev_op_pk is None:
-                continue
-            op_map[op].prev_operation = op_map[prev_op_pk]
-
-        return list(op_map.values())
-
-
-    def insert_operation(self, equipment, previous_operation, operation_name, date):
-        if previous_operation is None:
-            prev_op_pk = None
-        else:
-            prev_op_pk = previous_operation.pk
-
+    def insert_maintenance_item(self, operation_name, numdays, equipment):
         self.cursor.execute('''
             INSERT INTO
-                operation(
+                maintenanceitem(
                     name,
-                    date,
-                    previousid,
-                    equipmentid)
-            VALUES(?,?,?,?);''',
-            (operation_name, date, prev_op_pk, equipment.pk,))
+                    numdays,
+                    equipmentid
+                )
+            VALUES(?,?,?);''',
+            (operation_name, numdays, equipment.pk))
         self.conn.commit()
 
-        pk = self.get_operation_pk(operation_name, date, equipment.pk)
+        pk = self.get_maintenance_item_pk(operation_name, numdays, equipment.pk)
         print(pk)
         if pk == None:
             return None
-        return Operation(pk, operation_name, date, previous_operation, equipment)
 
-    def get_operation_pk(self, name, date, equip_pk):
+    def get_maintenance_item_pk(self, name, numdays, equip_pk):
         self.cursor.execute( '''
             SELECT
                 pk
             FROM
-                operation
+                maintenanceitem
             WHERE
                 name=?
             AND
-                date=?
+                numdays=?
             AND
                 equipmentid=?''',
-            (name, date, equip_pk,))
+            (name, numdays, equip_pk,))
         op = self.cursor.fetchone()
+
         if op == None:
             return None
         return op[0]

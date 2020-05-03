@@ -4,13 +4,17 @@ CREATE TABLE equipment(
     UNIQUE(name)
 );
 
-CREATE TABLE operation(
+CREATE TABLE maintenanceitem(
     pk INTEGER PRIMARY KEY,
     name TEXT,
-    date INTEGER,
-    previousid INTEGER,
+    numdays INTEGER,
     equipmentid INTEGER NOT NULL,
-    UNIQUE(previousid),
-    FOREIGN KEY(previousid) REFERENCES equipment(pk),
     FOREIGN KEY(equipmentid) REFERENCES operation(pk)
 );
+
+CREATE TABLE maintenancedate(
+    pk INTEGER PRIMARY KEY,
+    startdate INTEGER,
+    maintenanceid INTEGER NOT NULL,
+    FOREIGN KEY(maintenanceid) REFERENCES maintenance(pk)
+)
