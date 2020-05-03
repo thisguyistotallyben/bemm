@@ -16,6 +16,12 @@ class MaintenanceItem:
         self.equipment = equipment
 
 
+class MaintenanceDate:
+    def __init__(self, pk=-1, startdate=-1):
+        self.pk = pk
+        self.startdate = startdate
+
+
 class DBManager:
     def __init__(self, name):
         exists = False
@@ -44,7 +50,7 @@ class DBManager:
             FROM
                 equipment
             ORDER BY
-                name DESC''')
+                name DESC''') # this is not a mistake... blame treeview
         db_eq = self.cursor.fetchall()
 
         equipment_list = []
@@ -67,7 +73,7 @@ class DBManager:
             self.cursor.execute("INSERT INTO equipment(name) VALUES(?);", (name,))
             self.conn.commit()
         except sqlite3.IntegrityError:
-            print('That equipment already exists')
+            return None
 
         return self.get_equipment(name)
 
@@ -91,10 +97,9 @@ class DBManager:
         for mi in db_mi:
             mi_list.append(MaintenanceItem(mi[0], mi[1], mi[2], equipment))
 
-        print(mi_list)
         return mi_list
 
-    def insert_maintenance_item(self, operation_name, numdays, equipment):
+    def insert_maintenance_item(self, maintenance_name, numdays, equipment):
         self.cursor.execute('''
             INSERT INTO
                 maintenanceitem(
@@ -103,13 +108,14 @@ class DBManager:
                     equipmentid
                 )
             VALUES(?,?,?);''',
-            (operation_name, numdays, equipment.pk))
+            (maintenance_name, numdays, equipment.pk))
         self.conn.commit()
 
-        pk = self.get_maintenance_item_pk(operation_name, numdays, equipment.pk)
-        print(pk)
+        pk = self.get_maintenance_item_pk(maintenance_name, numdays, equipment.pk)
         if pk == None:
             return None
+
+        return MaintenanceItem(pk, maintenance_name, numdays, equipment)
 
     def get_maintenance_item_pk(self, name, numdays, equip_pk):
         self.cursor.execute( '''
@@ -130,10 +136,26 @@ class DBManager:
             return None
         return op[0]
 
-    def get_equipmentid(self, equipment_name):
-        self.cursor.execute("SELECT id FROM equipment WHERE name=?", (equipment_name,))
-        eq_id = self.cursor.fetchone()
-        return eq_id[0]
+    def get_all_maintenance_dates(self, m_item: MaintenanceItem):
+        self.cursor.execute('''
+            SELECT
+                pk,
+                startdate
+            FROM
+                maintenancedate
+            WHERE
+                maintenanceid=?
+            ORDER BY
+                startdate DESC''',
+            (m_item.pk))
+        db_md = self.cursor.fetchall()
+
+        md_list = []
+        for md in db_md:
+            md_list.append(MaintenanceDate(md[0], md[1]))
+
+        return md_list
+
 
     def close(self):
         self.conn.close()
@@ -141,4 +163,5 @@ class DBManager:
     # BE CAREFUL MY DUDE
     def drop_all(self):
         self.cursor.execute("DROP TABLE IF EXISTS equipment")
-        self.cursor.execute("DROP TABLE IF EXISTS operation")
+        self.cursor.execute("DROP TABLE IF EXISTS maintenanceitem")
+        self.cursor.execute("DROP TABLE IF EXISTS maintenancedate")

@@ -41,10 +41,14 @@ class Bemm(tk.Frame):
 
     def create_widgets(self):
         self.widgets = {}
+        self.labels = {}
 
         # labels
+        self.labels['info'] = tk.StringVar()
+        self.labels['info'].set("Info for: ")
         self.widgets['equiptreelabel'] = ttk.Label(self, text="Equipment")
         self.widgets['mitreelabel'] = ttk.Label(self, text="Maintenance Items")
+        self.widgets['infolabel'] = ttk.Label(self, textvariable=self.labels['info'])
 
         # equipment tree
         equiptree = ttk.Treeview(self, show='tree')
@@ -60,6 +64,7 @@ class Bemm(tk.Frame):
         mitree.column("numdays", width=100)
         mitree.heading('#0',text='Name',anchor=tk.W)
         mitree.heading('numdays',text='# Days',anchor=tk.W)
+        mitree.bind('<1>', self.item_click)
         self.widgets['mitree'] = mitree
 
         # buttons
@@ -69,6 +74,17 @@ class Bemm(tk.Frame):
         self.widgets['addmibutt'] = ttk.Button(self, text="Add new Maintenance Item")
         self.widgets['addmibutt']['command'] = self.add_mi
 
+        # Info Frame
+        infoframe = ttk.Frame(self, borderwidth=2, relief="groove")
+        self.widgets['infoframe'] = infoframe
+
+        histtree = ttk.Treeview(infoframe)
+        histtree['columns'] = ('start')
+        histtree.column('#0', width=40)
+        self.widgets['histtree'] = histtree
+
+        self.widgets['thing'] = ttk.Button(infoframe, text="Something")
+
         '''
         DISPLAY
         '''
@@ -76,18 +92,28 @@ class Bemm(tk.Frame):
         tk.Grid.rowconfigure(self, 1, weight=1)
         tk.Grid.columnconfigure(self, 0, weight=1)
         tk.Grid.columnconfigure(self, 1, weight=3)
+        tk.Grid.columnconfigure(self, 2, weight=2)
+
+        tk.Grid.rowconfigure(infoframe, 0, weight=1)
+        tk.Grid.columnconfigure(infoframe, 0, weight=1)
 
         # row 0
         self.widgets['equiptreelabel'].grid(column=0, row=0, sticky='w')
         self.widgets['mitreelabel'].grid(column=1, row=0, padx=(10, 0), sticky='w')
+        self.widgets['infolabel'].grid(column=2, row=0, sticky='w')
 
         # row 1
         equiptree.grid(column=0, row=1, pady=(0, 10), sticky='nsew')
-        mitree.grid(column=1, row=1, padx=(10, 0), pady=(0, 10), sticky='nsew')
+        mitree.grid(column=1, row=1, padx=10, pady=(0, 10), sticky='nsew')
 
         # row 2
         self.widgets['addequipbutt'].grid(column=0, row=2, sticky='nsew')
-        self.widgets['addmibutt'].grid(column=1, row=2, padx=(10, 0), sticky='nsew')
+        self.widgets['addmibutt'].grid(column=1, row=2, padx=10, sticky='nsew')
+
+        # info area
+        infoframe.grid(column=2, row=1, rowspan=2, ipadx=10, ipady=10, sticky='nsew')
+        # self.widgets['thing'].grid(column=2, row=1, rowspan=2, sticky='n')
+        histtree.grid(column=0, row=0, padx=10, pady=(0, 10), sticky='sew')
 
     def add_equipment(self):
         answer = simpledialog.askstring("New", "Enter Equipment Name", parent=self)
@@ -142,6 +168,14 @@ class Bemm(tk.Frame):
         equip_text = self.widgets['equiptree'].item(selected_equip, 'text')
         self.current_equipment = self.equipment_map[equip_text]
         self.update_mi_tree(self.widgets['mitree'], self.current_equipment)
+
+    def item_click(self, event):
+        selected_item = self.widgets['mitree'].identify('item', event.x, event.y)
+        if selected_item == '':
+            return
+
+        item_text = self.widgets['mitree'].item(selected_item, 'text')
+        self.labels['info'].set(f"Info for: {item_text}")
 
     def clear_tree(self, tree):
         for i in tree.get_children():

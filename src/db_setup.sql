@@ -15,6 +15,7 @@ CREATE TABLE maintenanceitem(
 CREATE TABLE maintenancedate(
     pk INTEGER PRIMARY KEY,
     startdate INTEGER,
+    completed INTEGER,
     maintenanceid INTEGER NOT NULL,
     FOREIGN KEY(maintenanceid) REFERENCES maintenance(pk)
 )
