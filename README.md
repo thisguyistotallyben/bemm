@@ -1,4 +1,4 @@
-# bemm
+# BEMM
 Ben's Equipment Maintenance Manager
 
 ## y tho
