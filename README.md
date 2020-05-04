@@ -7,5 +7,9 @@ It's a specific program for a specific use. If you have a use for it, awesome. E
 ## Overview
 I'll let you know more details when there are more details.
 
-## Tools
+## Required
 Python >3.6
+
+The following Python modules:
+- tkinter (already installed with Python)
+- tkcalendar

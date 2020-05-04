@@ -20,7 +20,7 @@ class Bemm(tk.Frame):
         self.master = master
 
         # db things
-        self.db = DBManager('yeet.sqlite3')
+        self.db = DBManager('db.sqlite3')
 
         self.current_equipment = None
         self.get_equipment_values()
@@ -199,41 +199,9 @@ class Bemm(tk.Frame):
 
 root = tk.Tk()
 root.geometry("900x600")
-root.wm_title('BEMM')
+root.state('zoomed')
+root.wm_title('Ben\'s Equipment Maintenance Manager')
 root.style = ttk.Style()
-# root.style.theme_use('classic')
 app = Bemm(master=root)
 app.pack(fill="both", expand=True, padx=10, pady=10)
 app.mainloop()
-
-
-
-
-
-
-
-
-
-# eq1 = db.insert_equipment('big ol tractor')
-# eq2 = db.insert_equipment('decent sized truck')
-
-# eqlist = db.get_all_equipment()
-# for eq in eqlist:
-#     print(eq.pk)
-#     print(eq.name)
-#     print('----')
-# print('')
-
-# op1 = db.insert_operation(eq1, None, 'sick operation', int(time.time()))
-# op2 = db.insert_operation(eq1, op1, 'sick operation', int(time.time()) + 20)
-# op3 = db.insert_operation(eq1, op2, 'sicker operation', int(time.time()))
-# print(op1)
-# print(op2)
-
-# ops = db.get_all_operations(eq1)
-# for op in ops:
-#     print(op.pk)
-#     print(op.name)
-#     print(op.date)
-#     print(op.prev_operation)
-#     print('----')
