@@ -17,9 +17,13 @@ class MaintenanceItem:
 
 
 class MaintenanceDate:
-    def __init__(self, pk=-1, startdate=-1):
+    def __init__(self, pk=-1, startdate=0, completed=False):
         self.pk = pk
         self.startdate = startdate
+        self.completed = True if completed else False
+        print('in entity')
+        print(repr(completed))
+        print(self.startdate)
 
 
 class DBManager:
@@ -35,7 +39,7 @@ class DBManager:
             self.setup_database()
 
     def setup_database(self):
-        with open('db_setup.sql', 'r') as f:
+        with open('src/db_setup.sql', 'r') as f:
             db_instructions = f.read()
 
         self.conn.executescript(db_instructions)
@@ -140,7 +144,8 @@ class DBManager:
         self.cursor.execute('''
             SELECT
                 pk,
-                startdate
+                startdate,
+                completed
             FROM
                 maintenancedate
             WHERE
@@ -152,10 +157,34 @@ class DBManager:
 
         md_list = []
         for md in db_md:
-            md_list.append(MaintenanceDate(md[0], md[1]))
+            print('yee haw')
+            print(md)
+            print(md[1])
+            md_list.append(MaintenanceDate(md[0], md[1], md[2]))
 
         return md_list
 
+    def insert_maintenance_date(self, m_item: MaintenanceItem, startdate):
+        self.cursor.execute('''
+            INSERT INTO
+                maintenancedate(
+                    startdate,
+                    completed,
+                    maintenanceid
+                )
+            VALUES(?,?,?);''',
+            (startdate, False, m_item.pk))
+        self.conn.commit()
+        pass
+
+        # pk = self.get_maintenance_item_pk(maintenance_name, numdays, equipment.pk)
+        # if pk == None:
+        #     return None
+
+        # return MaintenanceItem(pk, maintenance_name, numdays, equipment)
+
+    def get_maintenance_date_pk(self, startdate, numdays):
+        pass
 
     def close(self):
         self.conn.close()

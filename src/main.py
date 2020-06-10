@@ -6,18 +6,28 @@ Version: 0.3
 '''
 
 import time
+from datetime import datetime, timedelta
 import sqlite3
 import tkinter as tk
 from tkinter import simpledialog, messagebox
 from tkinter import ttk
 from tkcalendar import Calendar, DateEntry
-from db_manager import DBManager
+from db_manager import DBManager, Equipment, MaintenanceItem, MaintenanceDate
+
+
+complete_emoji = '✅'
+incomplete_emoji = '❌'
 
 
 class Bemm(tk.Frame):
     def __init__(self, master=None):
         super().__init__(master)
         self.master = master
+
+        # dope variables
+        self.equipment_map = {}
+        self.mi_map = {}
+        self.md_map = {}
 
         # db things
         self.db = DBManager('db.sqlite3')
@@ -37,22 +47,37 @@ class Bemm(tk.Frame):
         self.widgets = {}
         self.labels = {}
 
-        # labels
+        '''
+        Frames
+        '''
+        equipframe = ttk.Frame(self, borderwidth=2, relief="groove")
+        miframe = ttk.Frame(self, borderwidth=2, relief="groove")
+        infoframe = ttk.Frame(self, borderwidth=2, relief="groove")
+        self.widgets['equipframe'] = equipframe
+        self.widgets['miframe'] = miframe
+        self.widgets['infoframe'] = infoframe
+
+
+        '''
+        Labels
+        '''
         self.labels['info'] = tk.StringVar()
         self.labels['info'].set("Info for: ")
+
         self.widgets['equiptreelabel'] = ttk.Label(self, text="Equipment")
         self.widgets['mitreelabel'] = ttk.Label(self, text="Maintenance Items")
         self.widgets['infolabel'] = ttk.Label(self, textvariable=self.labels['info'])
 
-        # equipment tree
-        equiptree = ttk.Treeview(self, show='tree')
+        '''
+        Trees
+        '''
+        equiptree = ttk.Treeview(equipframe, show='tree')
         equiptree.heading("#0",text="Equipment", anchor=tk.W)
         equiptree.bind('<1>', self.equip_click)
         self.update_equipment_tree(equiptree)
         self.widgets['equiptree'] = equiptree
 
-        # operations tree
-        mitree = ttk.Treeview(self)
+        mitree = ttk.Treeview(miframe)
         mitree['columns'] = ('numdays', 'idk')
         mitree.column("#0", width=270)
         mitree.column("numdays", width=100)
@@ -61,23 +86,26 @@ class Bemm(tk.Frame):
         mitree.bind('<1>', self.item_click)
         self.widgets['mitree'] = mitree
 
-        # buttons
-        self.widgets['addequipbutt'] = ttk.Button(self, text="Add New Equipment")
-        self.widgets['addequipbutt']['command'] = self.add_equipment
-
-        self.widgets['addmibutt'] = ttk.Button(self, text="Add new Maintenance Item")
-        self.widgets['addmibutt']['command'] = self.add_mi
-
-        # Info Frame
-        infoframe = ttk.Frame(self, borderwidth=2, relief="groove")
-        self.widgets['infoframe'] = infoframe
-
         histtree = ttk.Treeview(infoframe)
-        histtree['columns'] = ('start')
-        histtree.column('#0', width=40)
+        histtree['columns'] = ('due')
+        histtree.column('#0', width=20)
+        histtree.column('due', width=100)
+        histtree.heading('#0',text='Completed',anchor=tk.W)
+        histtree.heading('due',text='Due Date',anchor=tk.W)
+        histtree.bind('<Double-1>', self.date_click)
         self.widgets['histtree'] = histtree
 
+        '''
+        Buttons
+        '''
+        self.widgets['addequipbutt'] = ttk.Button(equipframe, text="Add New Equipment")
+        self.widgets['addequipbutt']['command'] = self.add_equipment
+
+        self.widgets['addmibutt'] = ttk.Button(miframe, text="Add new Maintenance Item")
+        self.widgets['addmibutt']['command'] = self.add_mi
+
         self.widgets['setdate'] = ttk.Button(infoframe, text='Set Date')
+        self.widgets['setdate']['command'] = self.add_date
         self.widgets['calendar'] = DateEntry(infoframe, width=12, background='gray',
                                              foreground='white', borderwidth=2)
 
@@ -93,29 +121,40 @@ class Bemm(tk.Frame):
         tk.Grid.rowconfigure(infoframe, 1, weight=1)
         tk.Grid.columnconfigure(infoframe, 0, weight=1)
 
-        # row 0
+        # equip frame
         self.widgets['equiptreelabel'].grid(column=0, row=0, sticky='w')
+        equipframe.grid(column=0, row=1, sticky='nsew')
+        tk.Grid.rowconfigure(equipframe, 1, weight=1)
+        tk.Grid.columnconfigure(equipframe, 1, weight=1)
+        self.widgets['addequipbutt'].grid(column=0, row=0, padx=10, pady=10, sticky='nsew')
+        equiptree.grid(column=0, columnspan=2, row=1, padx=10, pady=(0, 10), sticky='nsew')
+
+        # maintenance item fram
+        miframe.grid(column=1, row=1, padx=10, sticky='nsew')
+        tk.Grid.rowconfigure(miframe, 1, weight=1)
+        tk.Grid.columnconfigure(miframe, 1, weight=1)
+        self.widgets['addmibutt'].grid(column=0, row=0, padx=10, pady=10, sticky='nsew')
+        mitree.grid(column=0, columnspan=2, row=1, padx=10, pady=(0, 10), sticky='nsew')
+
+        # row 0
         self.widgets['mitreelabel'].grid(column=1, row=0, padx=(10, 0), sticky='w')
         self.widgets['infolabel'].grid(column=2, row=0, sticky='w')
 
         # row 1
-        equiptree.grid(column=0, row=1, pady=(0, 10), sticky='nsew')
-        mitree.grid(column=1, row=1, padx=10, pady=(0, 10), sticky='nsew')
 
         # row 2
-        self.widgets['addequipbutt'].grid(column=0, row=2, sticky='nsew')
-        self.widgets['addmibutt'].grid(column=1, row=2, padx=10, sticky='nsew')
 
         # info area
         infoframe.grid(column=2, row=1, rowspan=2, ipadx=10, ipady=10, sticky='nsew')
-        histtree.grid(column=0, row=1, padx=10, pady=(0, 10), sticky='nsew')
-        self.widgets['calendar'].grid(column=0, row=0, padx=(10, 0), pady=10, sticky='w')
+        histtree.grid(column=0, row=1, columnspan=2, padx=10, pady=(0, 10), sticky='nsew')
+        self.widgets['calendar'].grid(column=1, row=0, padx=(10, 0), pady=10, sticky='w')
+        self.widgets['setdate'].grid(column=0, row=0, padx=(10, 0), pady=10, sticky='w')
 
 
     def add_equipment(self):
         answer = simpledialog.askstring("New", "Enter Equipment Name", parent=self)
 
-        if answer is None or answer == '':
+        if not answer:
             return
 
         self.db.insert_equipment(answer)
@@ -124,7 +163,7 @@ class Bemm(tk.Frame):
 
     def add_mi(self):
         if self.current_equipment is None:
-            messagebox.showerror('Failed', 'Double click an equipment entry to add an item')
+            messagebox.showerror('Failed', 'Select an equipment entry to add an item')
             return
 
         op_name = simpledialog.askstring('New', 'Enter New Maintenance Item')
@@ -149,20 +188,48 @@ class Bemm(tk.Frame):
 
     def update_mi_tree(self, tree, equipment):
         self.clear_tree(tree)
+        self.clear_tree(self.widgets['histtree'])
         self.mi_map = {}
 
         mi_list = self.db.get_all_maintenance_items(equipment)
 
         for i in mi_list:
             self.mi_map[i.name] = i
-            tree.insert('', 0, '', text=i.name, values=(i.numdays))
+            tree.insert('', 0, '', text=i.name, values=(i.numdays), tags=(i.pk,))
 
-    def update_hist_tree(self, tree, m_item):
-        # print('here then')
+    def update_hist_tree(self):
+        tree = self.widgets['histtree']
+        dates = self.db.get_all_maintenance_dates(self.current_item)
+        print('here then')
+        print(tree)
         # get all dates
         # iterate
-        dates = self.db.get_all_maintenance_dates(m_item)
+        self.clear_tree(tree)
+
+        if dates is not None:
+            self.md_map = {}
+            for date in dates:
+                print('----')
+                print(date.pk)
+                print(date.completed)
+                print(date.startdate)
+                self.md_map[date.pk] = date
+                tree.insert('', 0, '',
+                    text=complete_emoji if date.completed else '',
+                    values=(self.get_due_date(date.startdate, self.current_item.numdays)))
+            # update md_map
+
         # print(dates)
+        pass
+
+    def set_history_section(self):
+        print(self.current_item)
+
+        self.update_hist_tree()
+        # update info section
+
+
+        self.labels['info'].set(f"Info for: {self.current_item.name}")
 
 
     '''
@@ -178,23 +245,49 @@ class Bemm(tk.Frame):
         self.update_mi_tree(self.widgets['mitree'], self.current_equipment)
 
     def item_click(self, event):
-        # print('here')
         selected_item = self.widgets['mitree'].identify('item', event.x, event.y)
         if selected_item == '':
             return
 
-        item_text = self.widgets['mitree'].item(selected_item, 'text')
-        self.labels['info'].set(f"Info for: {item_text}")
-        m_item = self.mi_map[item_text]
-        self.update_hist_tree(self.widgets['histtree'], m_item)
+        m_item = self.mi_map[
+            self.widgets['mitree'].item(selected_item, 'text')
+        ]
 
-    # def new_date(self):
-    #     cal =
-    #     cal.grid(column=1, row=0)
+        self.current_item = m_item
+        self.set_history_section()
+
+    def date_click(self, event):
+        print('time to complete')
+        selected_item = self.widgets['histtree'].identify('item', event.x, event.y)
+
+        # TRYING TO FIND THE DATE FROM THE COMPLETED COLUMN
+        # TRY TO USE TAGS. THIS PART IS NOT WORKING RIGHT NOW
+        #m_date = self.md_map[
+        print(self.widgets['histtree'].item(selected_item, 'tags'))
+        #]
+        #print(m_date)
+        pass
+
+    def add_date(self):
+        print('adding a date')
+        self.db.insert_maintenance_date(self.current_item, time.time())
+        self.update_hist_tree()
 
     def clear_tree(self, tree):
+        print('clearing')
+        print(tree)
         for i in tree.get_children():
             tree.delete(i)
+
+    def get_due_date(self, date, numdays):
+        date = datetime.fromtimestamp(date) + timedelta(days=numdays)
+        print(date.strftime("%d/%m/%Y"))
+        return date
+
+    def complete_date(self, event):
+        print('yeeeeeeeeeet')
+        pass
+
 
 
 root = tk.Tk()
@@ -202,6 +295,7 @@ root.geometry("900x600")
 root.state('zoomed')
 root.wm_title('Ben\'s Equipment Maintenance Manager')
 root.style = ttk.Style()
+# root.style.theme_use('classic')
 app = Bemm(master=root)
 app.pack(fill="both", expand=True, padx=10, pady=10)
 app.mainloop()

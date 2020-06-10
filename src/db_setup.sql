@@ -9,13 +9,13 @@ CREATE TABLE maintenanceitem(
     name TEXT,
     numdays INTEGER,
     equipmentid INTEGER NOT NULL,
-    FOREIGN KEY(equipmentid) REFERENCES operation(pk)
+    FOREIGN KEY(equipmentid) REFERENCES equipment(pk)
 );
 
 CREATE TABLE maintenancedate(
     pk INTEGER PRIMARY KEY,
-    startdate INTEGER,
-    completed INTEGER,
+    startdate FLOAT,
+    completed BOOLEAN,
     maintenanceid INTEGER NOT NULL,
-    FOREIGN KEY(maintenanceid) REFERENCES maintenance(pk)
+    FOREIGN KEY(maintenanceid) REFERENCES maintenanceitem(pk)
 )
