@@ -2,6 +2,15 @@ import os
 import sqlite3
 
 
+'''
+THING I THINK I'M MISSING
+
+The completed date shouldn't be a boolean because it can be overdue.
+It was an integer before so it could be set to the date in which it was marked completed.
+This should be changed back.
+'''
+
+
 class Equipment:
     def __init__(self, pk=-1, name=''):
         self.pk = pk
@@ -185,6 +194,17 @@ class DBManager:
 
     def get_maintenance_date_pk(self, startdate, numdays):
         pass
+
+    def set_completed(self, m_date: MaintenanceDate, completed: bool):
+        self.cursor.execute('''
+            UPDATE
+                maintenancedate
+            SET
+                completed = ?
+            WHERE
+                pk = ?''',
+            (completed, m_date.pk,))
+        self.conn.commit()
 
     def close(self):
         self.conn.close()

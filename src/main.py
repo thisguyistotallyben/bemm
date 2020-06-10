@@ -195,7 +195,7 @@ class Bemm(tk.Frame):
 
         for i in mi_list:
             self.mi_map[i.name] = i
-            tree.insert('', 0, '', text=i.name, values=(i.numdays), tags=(i.pk,))
+            tree.insert('', 0, '', text=i.name, values=(i.numdays))
 
     def update_hist_tree(self):
         tree = self.widgets['histtree']
@@ -209,14 +209,15 @@ class Bemm(tk.Frame):
         if dates is not None:
             self.md_map = {}
             for date in dates:
-                print('----')
+                print('DATE INFO -----------------')
                 print(date.pk)
                 print(date.completed)
                 print(date.startdate)
                 self.md_map[date.pk] = date
                 tree.insert('', 0, '',
                     text=complete_emoji if date.completed else '',
-                    values=(self.get_due_date(date.startdate, self.current_item.numdays)))
+                    values=(self.get_due_date(date.startdate, self.current_item.numdays)),
+                    tags=(date.pk,))
             # update md_map
 
         # print(dates)
@@ -260,12 +261,16 @@ class Bemm(tk.Frame):
         print('time to complete')
         selected_item = self.widgets['histtree'].identify('item', event.x, event.y)
 
-        # TRYING TO FIND THE DATE FROM THE COMPLETED COLUMN
-        # TRY TO USE TAGS. THIS PART IS NOT WORKING RIGHT NOW
-        #m_date = self.md_map[
-        print(self.widgets['histtree'].item(selected_item, 'tags'))
-        #]
-        #print(m_date)
+        print(self.md_map)
+        m_date = self.md_map[
+            int(self.widgets['histtree'].item(selected_item, 'tags')[0])
+        ]
+        print(m_date)
+
+        if m_date.completed:
+            return
+
+        self.set_completed(m_date, True)
         pass
 
     def add_date(self):
@@ -284,9 +289,10 @@ class Bemm(tk.Frame):
         print(date.strftime("%d/%m/%Y"))
         return date
 
-    def complete_date(self, event):
+    def set_completed(self, m_date: MaintenanceDate, completed: bool):
         print('yeeeeeeeeeet')
-        pass
+        self.db.set_completed(m_date, completed)
+        self.update_hist_tree()
 
 
 
