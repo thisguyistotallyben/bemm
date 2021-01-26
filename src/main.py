@@ -6,7 +6,7 @@ Version: 0.3
 '''
 
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import sqlite3
 import tkinter as tk
 from tkinter import simpledialog, messagebox
@@ -129,7 +129,7 @@ class Bemm(tk.Frame):
         self.widgets['addequipbutt'].grid(column=0, row=0, padx=10, pady=10, sticky='nsew')
         equiptree.grid(column=0, columnspan=2, row=1, padx=10, pady=(0, 10), sticky='nsew')
 
-        # maintenance item fram
+        # maintenance item frame
         miframe.grid(column=1, row=1, padx=10, sticky='nsew')
         tk.Grid.rowconfigure(miframe, 1, weight=1)
         tk.Grid.columnconfigure(miframe, 1, weight=1)
@@ -147,8 +147,8 @@ class Bemm(tk.Frame):
         # info area
         infoframe.grid(column=2, row=1, rowspan=2, ipadx=10, ipady=10, sticky='nsew')
         histtree.grid(column=0, row=1, columnspan=2, padx=10, pady=(0, 10), sticky='nsew')
-        self.widgets['calendar'].grid(column=1, row=0, padx=(10, 0), pady=10, sticky='w')
-        self.widgets['setdate'].grid(column=0, row=0, padx=(10, 0), pady=10, sticky='w')
+        self.widgets['calendar'].grid(column=0, row=0, padx=(10, 0), pady=10, sticky='w')
+        self.widgets['setdate'].grid(column=1, row=0, padx=(10, 0), pady=10)
 
 
     def add_equipment(self):
@@ -211,11 +211,11 @@ class Bemm(tk.Frame):
             for date in dates:
                 print('DATE INFO -----------------')
                 print(date.pk)
-                print(date.completed)
+                print(date.iscomplete)
                 print(date.startdate)
                 self.md_map[date.pk] = date
                 tree.insert('', 0, '',
-                    text=complete_emoji if date.completed else '',
+                    text=complete_emoji if date.iscomplete else '',
                     values=(self.get_due_date(date.startdate, self.current_item.numdays)),
                     tags=(date.pk,))
             # update md_map
@@ -244,6 +244,9 @@ class Bemm(tk.Frame):
         equip_text = self.widgets['equiptree'].item(selected_equip, 'text')
         self.current_equipment = self.equipment_map[equip_text]
         self.update_mi_tree(self.widgets['mitree'], self.current_equipment)
+
+        print('BIIIIIIIG')
+        self.labels['info'].set(f"Info for:")
 
     def item_click(self, event):
         selected_item = self.widgets['mitree'].identify('item', event.x, event.y)
@@ -274,9 +277,11 @@ class Bemm(tk.Frame):
         pass
 
     def add_date(self):
-        print('adding a date')
-        self.db.insert_maintenance_date(self.current_item, time.time())
-        self.update_hist_tree()
+        print('adding a date', time.time())
+        cal_date = self.widgets['calendar'].get_date()
+        # print(datetime.fromtimestamp(cal_date, timezone.utc))
+        self.db.insert_maintenance_date(self.current_item, cal_date)
+        # self.update_hist_tree()
 
     def clear_tree(self, tree):
         print('clearing')

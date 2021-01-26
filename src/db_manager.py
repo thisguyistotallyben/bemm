@@ -26,13 +26,12 @@ class MaintenanceItem:
 
 
 class MaintenanceDate:
-    def __init__(self, pk=-1, startdate=0, completed=False):
+    def __init__(self, pk=-1, startdate=0, completedate=0, iscomplete=False, maintenanceitem=None):
         self.pk = pk
         self.startdate = startdate
-        self.completed = True if completed else False
-        print('in entity')
-        print(repr(completed))
-        print(self.startdate)
+        self.completedate = completedate
+        self.iscomplete = iscomplete
+        self.maintenanceitem = maintenanceitem
 
 
 class DBManager:
@@ -48,7 +47,7 @@ class DBManager:
             self.setup_database()
 
     def setup_database(self):
-        with open('src/db_setup.sql', 'r') as f:
+        with open('db_setup.sql', 'r') as f:
             db_instructions = f.read()
 
         self.conn.executescript(db_instructions)
@@ -154,7 +153,8 @@ class DBManager:
             SELECT
                 pk,
                 startdate,
-                completed
+                completedate,
+                iscomplete
             FROM
                 maintenancedate
             WHERE
@@ -169,16 +169,17 @@ class DBManager:
             print('yee haw')
             print(md)
             print(md[1])
-            md_list.append(MaintenanceDate(md[0], md[1], md[2]))
+            md_list.append(MaintenanceDate(md[0], md[1], md[2], md[3], m_item))
 
         return md_list
 
     def insert_maintenance_date(self, m_item: MaintenanceItem, startdate):
+        print(startdate)
         self.cursor.execute('''
             INSERT INTO
                 maintenancedate(
                     startdate,
-                    completed,
+                    iscomplete,
                     maintenanceid
                 )
             VALUES(?,?,?);''',

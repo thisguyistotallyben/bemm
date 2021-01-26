@@ -15,7 +15,8 @@ CREATE TABLE maintenanceitem(
 CREATE TABLE maintenancedate(
     pk INTEGER PRIMARY KEY,
     startdate FLOAT,
-    completed BOOLEAN,
+    completedate FLOAT,
+    iscomplete BOOLEAN,
     maintenanceid INTEGER NOT NULL,
     FOREIGN KEY(maintenanceid) REFERENCES maintenanceitem(pk)
 )
